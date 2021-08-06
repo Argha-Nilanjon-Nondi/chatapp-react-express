@@ -29,8 +29,8 @@ export default class Chat extends Component {
   sendMsg = () => {
     //send message
     const keys = this.props.room;
-    const ciphertext = CryptoJS.AES.encrypt(this.state.textMsg,keys);
-    const message= ciphertext.toString();
+    const ciphertext = CryptoJS.AES.encrypt(this.state.textMsg, keys);
+    const message = ciphertext.toString();
     socket.emit("chat", {
       msg: message,
     });
@@ -43,11 +43,11 @@ export default class Chat extends Component {
       username: this.props.username,
     });
 
-    //get room join status
-    socket.on("join-room", (data) => {
+    //waiting for message
+    socket.on("chat", (data) => {
       const code = data.code;
+      //get room join staus
       if (code === "2000") {
-        //getting necessary data
         const message = data.message;
         const username = data.username;
         const userId = data.userId;
@@ -61,16 +61,12 @@ export default class Chat extends Component {
           }),
         });
       }
-    });
-
-    //waiting for message
-    socket.on("chat", (data) => {
-      const code = data.code;
-      if (code === "2000") {
-        const keys=this.props.room;
+      //get message
+      if (code === "2001") {
+        const keys = this.props.room;
         const userId = data.userId;
         const username = data.username;
-        const bytes = CryptoJS.AES.decrypt(data.message,keys);
+        const bytes = CryptoJS.AES.decrypt(data.message, keys);
         const message = bytes.toString(CryptoJS.enc.Utf8);
         //set messages in the state
         this.setState({
@@ -78,12 +74,24 @@ export default class Chat extends Component {
           msgList: this.state.msgList.concat({
             username: username,
             message: message,
-            userId: userId
+            userId: userId,
+          }),
+        });
+      }
+      //getting data if a use leave or addedy
+      if (code === "2002") {
+        const message = data.message;
+        const username = data.username;
+        const userId = data.userId;
+        this.setState({
+          msgList: this.state.msgList.concat({
+            username: username,
+            message: message,
+            userId: userId,
           }),
         });
       }
     });
-
   };
 
   render() {

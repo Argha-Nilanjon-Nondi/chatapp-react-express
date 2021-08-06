@@ -42,11 +42,19 @@ io.on("connection", (socket) => {
     helper.joinUser(socket.id, username, room);
 
     //Send acknowledge message to the user
-    io.to(socket.id).emit("join-room", {
+    io.to(socket.id).emit("chat", {
+      userId: socket.id,
+      username: `@${username}`,
+      code: "2000",
+      message: `Welcome ${username}`,
+    });
+
+    //Send acknowledge message to all user
+    io.to(room).emit("chat", {
       userId: socket.id,
       username: username,
-      code: "2000",
-      message: `${username} is added`,
+      code: "2002",
+      message: `@${username} is added`,
     });
 
     //listen to chat event
@@ -54,15 +62,30 @@ io.on("connection", (socket) => {
       //throw to all users in the room id
       let singleUser = helper.getSingleUser(socket.id);
       let senderUserName = singleUser.userName;
+      let senderRoomId = singleUser.roomId;
       let senderUserId = singleUser.userId;
       let senderUserMsg = data.msg;
-      
-      console.log(data);
-      io.to(singleUser.roomId).emit("chat", {
+
+      io.to(senderRoomId).emit("chat", {
         username: senderUserName,
         userId: senderUserId,
-        code: "2000",
+        code: "2001",
         message: senderUserMsg,
+      });
+    });
+
+    //if a user disconnect
+    socket.on("disconnect", (data) => {
+      //throw to all users in the room id
+      let singleUser = helper.getSingleUser(socket.id);
+      let senderRoomId = singleUser.roomId;
+      let senderUserName = singleUser.userName;
+      let senderUserId = singleUser.userId;
+      io.to(senderRoomId).emit("chat", {
+        username: `@${senderUserName}`,
+        userId: senderUserId,
+        code: "2002",
+        message: `${senderUserName} is leaving`,
       });
     });
   });
