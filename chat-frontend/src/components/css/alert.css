@@ -1,0 +1,10 @@
+@keyframes invisible {
+  from {display:block !important;}
+  to {display:none !important;}
+}
+
+.custom-alert {
+  animation-name:"invisible";
+  animation-duration: 3s;
+  animation-iteration-count:1;
+}

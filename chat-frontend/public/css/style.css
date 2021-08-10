@@ -9,3 +9,11 @@
 .chat-box-responsive {
   height: 20rem;
 }
+
+.chat-image-frame{
+}
+
+.chat-image{
+  height:100%;
+  width: 100%;
+}

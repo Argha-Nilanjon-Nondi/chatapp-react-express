@@ -20,73 +20,160 @@ const webSocket = app.listen(port, () => {
 const io = socketio(webSocket);
 
 io.on("connection", (socket) => {
-  socket.on("join-room", (data) => {
-    if (data.room === undefined || data.username == undefined) {
-      socket.emit("join-room", {
+  //join in a chat
+  socket.on("join-chat", (data) => {
+    if (data.roomId === undefined || data.username == undefined) {
+      socket.emit("join-chat", {
         code: "3000",
         message: "Required field is not found",
       });
-      return 0;
-    }
-    if (data.room === "" || data.username == "") {
-      socket.emit("join-room", {
+    } else if (data.roomId === "" || data.username == "") {
+      socket.emit("join-chat", {
         code: "3001",
         message: "Required field is empty",
       });
-      return 0;
+    } else if (
+      data.roomId !== undefined &&
+      data.username !== undefined &&
+      data.roomId !== "" &&
+      data.username != ""
+    ) {
+      const username = data.username;
+      const room = data.roomId;
+      let joinStatus = helper.joinUser(room, socket.id, username);
+      if (joinStatus === true) {
+        socket.join(room);
+        //Send acknowledge message to the user
+        io.to(socket.id).emit("join-chat", {
+          userId: socket.id,
+          username: `@${username}`,
+          code: "2000",
+          message: `Welcome ${username}`,
+        });
+
+           //send users list to the new members
+        io.to(socket.id).emit("chat", {
+          userList: helper.users[room].member,
+          code: "2004"
+        });
+
+        //Send acknowledge message to all user
+        io.to(room).emit("chat", {
+          userId: socket.id,
+          username: username,
+          code: "2002",
+          message: `@${username} is added`,
+        });
+      }
+
+      if (joinStatus === false) {
+        //Send acknowledge message to the user
+        io.to(socket.id).emit("join-chat", {
+          userId: socket.id,
+          code: "3002",
+          message: `Room ID is not valid`,
+        });
+      }
     }
+  });
 
-    const username = data.username;
-    const room = data.room;
-    socket.join(room);
-    helper.joinUser(socket.id, username, room);
+  //create a chat room
+  socket.on("create-chat", (data) => {
+    if (data.roomId === undefined || data.username == undefined) {
+      socket.emit("create-chat", {
+        code: "3000",
+        message: "Required field is not found",
+      });
+    } else if (data.roomId === "" || data.username == "") {
+      socket.emit("create-chat", {
+        code: "3001",
+        message: "Required field is empty",
+      });
+    } else if (
+      data.roomId !== undefined &&
+      data.username !== undefined &&
+      data.roomId !== "" &&
+      data.username != ""
+    ) {
+      const username = data.username;
+      const room = data.roomId;
+      socket.join(room);
+      console.log(room)
+      let createStatus = helper.createRoom(room);
 
-    //Send acknowledge message to the user
-    io.to(socket.id).emit("chat", {
-      userId: socket.id,
-      username: `@${username}`,
-      code: "2000",
-      message: `Welcome ${username}`,
-    });
+      if (createStatus != false) {
+        //Send acknowledge message to the user
+        io.to(socket.id).emit("create-chat", {
+          userId: socket.id,
+          roomPassword: createStatus,
+          username: `@${username}`,
+          code: "2001",
+          message: `Chat room is created`,
+        });
 
-    //Send acknowledge message to all user
+        let joinStatus = helper.joinUser(room, socket.id, username);
+
+        if (joinStatus === true) {
+          //Send acknowledge message to the user
+          io.to(socket.id).emit("create-chat", {
+            userId: socket.id,
+            username: `@${username}`,
+            code: "2000",
+            message: `Welcome ${username}`,
+          });
+
+          //send users list to the new members
+          io.to(socket.id).emit("chat", {
+            userList: helper.users[room].member,
+            code: "2004",
+          });
+        }
+
+        if (joinStatus === false) {
+          //Send acknowledge message to the user
+          io.to(socket.id).emit("create-chat", {
+            userId: socket.id,
+            code: "3002",
+            message: `Room ID is not valid`,
+          });
+        }
+      }
+
+      if (createStatus === false) {
+        //Send acknowledge message to the user
+        io.to(socket.id).emit("create-chat", {
+          userId: socket.id,
+          username: `@${username}`,
+          code: "3003",
+          message: `Room Id is already exist`,
+        });
+      }
+    }
+  });
+
+  //listen to chat event
+  socket.on("chat", (data) => {//2003
+    let room = helper.userIdToRoom(socket.id);
+    let senderUserId = socket.id;
+    let senderImg = data.img;
+    let username=helper.getSingleUser(room,senderUserId).userName;
+
     io.to(room).emit("chat", {
-      userId: socket.id,
-      username: username,
-      code: "2002",
-      message: `@${username} is added`,
+      userName:username,
+      userId: senderUserId,
+      code: "2003",
+      img: senderImg,
     });
+  });
 
-    //listen to chat event
-    socket.on("chat", (data) => {
-      //throw to all users in the room id
-      let singleUser = helper.getSingleUser(socket.id);
-      let senderUserName = singleUser.userName;
-      let senderRoomId = singleUser.roomId;
-      let senderUserId = singleUser.userId;
-      let senderUserMsg = data.msg;
-
-      io.to(senderRoomId).emit("chat", {
-        username: senderUserName,
-        userId: senderUserId,
-        code: "2001",
-        message: senderUserMsg,
-      });
-    });
-
-    //if a user disconnect
-    socket.on("disconnect", (data) => {
-      //throw to all users in the room id
-      let singleUser = helper.getSingleUser(socket.id);
-      let senderRoomId = singleUser.roomId;
-      let senderUserName = singleUser.userName;
-      let senderUserId = singleUser.userId;
-      io.to(senderRoomId).emit("chat", {
-        username: `@${senderUserName}`,
-        userId: senderUserId,
-        code: "2002",
-        message: `${senderUserName} is leaving`,
-      });
+  //if a user disconnect
+  socket.on("disconnect", (data) => {
+    //throw to all users in the room id
+    senderUserId=socket.id;
+    let senderRoomId=helper.userIdToRoom(senderUserId);
+    io.to(senderRoomId).emit("chat", {
+      userId: senderUserId,
+      code: "2005"
     });
   });
 });

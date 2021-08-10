@@ -1,152 +1,157 @@
 import React, { Component, Fragment } from "react";
 import { io } from "socket.io-client";
-import ReactScrollableFeed from "react-scrollable-feed";
+import Webcam from "react-webcam";
 import CryptoJS from "crypto-js";
-import LeftRow from "./LeftRow";
-import RightRow from "./RightRow";
-import LoadingBar from "./LoadingBar";
-const socket = io(`http://${document.location.hostname}:8000/`, {
-  transports: ["websocket", "polling", "flashsocket"],
-});
+import MemberCard from "./MemberCard";
 
 export default class Chat extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      textMsg: "",
-      loadingStatus: true,
-      msgList: [],
+      videoStart:false,
+      room: this.props.room,
+      chattype: this.props.chattype,
+      roomPassword: this.props.roomPassword,
+      ownUserId: this.props.userid,
+      cameraOpen: true,
+      dataList: {},
     };
   }
 
-  handleField = (event) => {
-    this.setState({
-      [event.target.name]: event.target.value,
-    });
+  setRef = (webcam) => {
+    this.webcam = webcam;
   };
 
-  sendMsg = () => {
-    //send message
-    const keys = this.props.room;
-    const ciphertext = CryptoJS.AES.encrypt(this.state.textMsg, keys);
-    const message = ciphertext.toString();
-    socket.emit("chat", {
-      msg: message,
+  sendData = () => {
+    if(this.state.videoStart===true){
+    const imageSrc = this.webcam.getScreenshot();
+    this.props.socket.emit("chat", {
+      roomId: this.state.room,
+      img: imageSrc,
     });
+  }
   };
 
   componentDidMount = () => {
-    //send request to join room chat
-    socket.emit("join-room", {
-      room: this.props.room,
-      username: this.props.username,
-    });
+    this.props.socket.on("chat", (data) => {
+      let code = data.code;
 
-    //waiting for message
-    socket.on("chat", (data) => {
-      const code = data.code;
-      //get room join staus
-      if (code === "2000") {
-        const message = data.message;
-        const username = data.username;
-        const userId = data.userId;
-        localStorage.setItem("userid", userId);
-        this.setState({
-          loadingStatus: false,
-          msgList: this.state.msgList.concat({
+      if(code==="2003"){
+        let userId = data.userId;
+        let img = data.img;
+        let username=data.userName;
+
+        this.setState((previousState) => {
+          let dataList = Object.assign({}, previousState.dataList);
+          dataList[userId] = {
             username: username,
-            message: message,
-            userId: userId,
-          }),
+            imgdata:img,
+          };
+
+          return { dataList };
         });
       }
-      //get message
-      if (code === "2001") {
-        const keys = this.props.room;
-        const userId = data.userId;
-        const username = data.username;
-        const bytes = CryptoJS.AES.decrypt(data.message, keys);
-        const message = bytes.toString(CryptoJS.enc.Utf8);
-        //set messages in the state
-        this.setState({
-          loadingStatus: false,
-          msgList: this.state.msgList.concat({
-            username: username,
-            message: message,
-            userId: userId,
-          }),
+
+      //if anybody left the room
+      if (code === "2005") {
+        console.log(data);
+        this.setState((previousState) => {
+          let dataList = Object.assign({}, previousState.dataList);
+          delete dataList[data.userId];
+          return { dataList };
         });
       }
-      //getting data if a use leave or addedy
+
+      //getting all members Id
+      if (code === "2004") {
+        this.setState((previousState) => {
+          let dataList = Object.assign({}, previousState.dataList);
+          data.userList.map((obj) => {
+            dataList[obj.userId] = {
+              username: obj.userName,
+              imgdata: "/favicon.ico",
+            };
+          });
+          return { dataList };
+        });
+      }
+
+      //if anyone joins
       if (code === "2002") {
-        const message = data.message;
-        const username = data.username;
-        const userId = data.userId;
-        this.setState({
-          msgList: this.state.msgList.concat({
+        let userId = data.userId;
+        let username = data.username;
+
+        this.setState((previousState) => {
+          let dataList = Object.assign({}, previousState.dataList);
+          dataList[userId] = {
             username: username,
-            message: message,
-            userId: userId,
-          }),
+            imgdata: "/favicon.ico",
+          };
+
+          return { dataList };
         });
       }
     });
   };
 
+  startVideo=()=>{
+   this.setState((previousState)=>{
+   let videoStart=this.state.videoStart==true?false:true;
+   var timeStep;
+   if(videoStart===true){
+    timeStep= setInterval(()=>{
+     this.sendData();
+     },100)
+   }
+   if(videoStart==false){
+     clearInterval(timeStep);
+   }
+   return {videoStart};
+   });
+  //  if (this.state.videoStart == false) {
+  //    clearInterval(sendMe);
+  //  }
+   
+  }
+
   render() {
+    const videoConstraints = {
+      width: 1000,
+      height: 1000,
+      facingMode: "user",
+    };
+
     return (
       <Fragment>
-        {this.state.loadingStatus ? (
-          <LoadingBar></LoadingBar>
-        ) : (
-          <Fragment>
-            <div className="container row mt-2 custom-block-center chat-box-responsive">
-              <ReactScrollableFeed>
-                {this.state.msgList.map((obj) =>
-                  localStorage.getItem("userid") === obj.userId ? (
-                    <RightRow
-                      username={obj.username}
-                      text={obj.message}
-                      key={Math.random()}
-                    ></RightRow>
-                  ) : (
-                    <LeftRow
-                      username={obj.username}
-                      text={obj.message}
-                      key={Math.random()}
-                    ></LeftRow>
-                  )
-                )}
-              </ReactScrollableFeed>
-            </div>
+        {
+          this.state.videoStart?( <Webcam
+            audio={false}
+            height={100}
+            ref={this.setRef}
+            screenshotFormat="image/jpeg"
+            width={100}
+            videoConstraints={videoConstraints}
+          />):("")
+        }
+        <div className="container">
+          <button className="btn btn-primary" onClick={this.startVideo}>Start Video</button>
+        </div>
+        <div className="row justify-content-center">
+          {Object.keys(this.state.dataList).map((obj) => (
+            <MemberCard
+              key={Math.random()}
+              username={this.state.dataList[obj].username}
+              imgdata={this.state.dataList[obj].imgdata}
+            ></MemberCard>
+          ))}
+        </div>
+        {/* <div>
+         
 
-            <div className="container row mt-2" style={{ margin: "0 auto" }}>
-              <div className="col-11">
-                <div className="form-floating">
-                  <textarea
-                    className="form-control"
-                    placeholder="Type message here"
-                    id="floatingTextarea"
-                    name="textMsg"
-                    value={this.state.textMsg}
-                    onChange={this.handleField}
-                  ></textarea>
-                  <label htmlFor="floatingTextarea">Message</label>
-                </div>
-              </div>
-              <div className="col-1">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={this.sendMsg}
-                >
-                  <i className="fas fa-arrow-right"></i>
-                </button>
-              </div>
-            </div>
-          </Fragment>
-        )}
+          <img src={this.state.img} />
+          <button onClick={this.capture}>Capture photo</button>
+        </div> */}
       </Fragment>
     );
   }
