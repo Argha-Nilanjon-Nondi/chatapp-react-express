@@ -7,6 +7,7 @@ import Alert from "./components/Alert";
 const socket = io(`http://${document.location.hostname}:8000/`, {
   transports: ["websocket", "polling", "flashsocket"],
 });
+console.log(document.location.hostname)
 export default class App extends Component {
   constructor(props) {
     super(props);
@@ -49,8 +50,9 @@ export default class App extends Component {
   };
 
   componentDidMount = () => {
-    socket.on("chat",(data)=>{
-    })
+    window.onbeforeunload=()=>{
+      socket.disconnect();
+    }
     //waiting for join chat response
     socket.on("join-chat", (data) => {
       let code = data.code;
@@ -197,7 +199,7 @@ export default class App extends Component {
           socket={socket}
             room={this.state.room}
             roomPassword={this.state.roomPassword}
-            userid={this.state.userid}
+            userid={this.state.userId}
             username={this.state.username}
             chattype={this.state.chattype}
           ></Chat>
