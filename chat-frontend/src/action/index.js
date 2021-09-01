@@ -1,64 +1,98 @@
-const roomId = (roomid) => {
+import { io } from "socket.io-client";
+export const roomId = (roomid) => {
   return {
     type: "roomid",
     payload: roomid,
   };
 };
 
-const roomPassword = (roompassword) => {
+export const roomPassword = (roompassword) => {
   return {
     type: "roompassword",
     payload: roompassword,
   };
 };
 
-const username = (username) => {
+export const userName = (username) => {
   return {
     type: "username",
     payload: username,
   };
 };
 
-
-const userId = (userid) => {
+export const userId = (userid) => {
   return {
     type: "userid",
     payload: userid,
   };
 };
 
-const chatType = (chattype) => {
+export const chatType = (chattype) => {
   return {
     type: "chattype",
     payload: chattype,
   };
 };
 
-const cameraOpen = (camerastatus) => {
+export const cameraOpen = (status) => {
+  alert("Camera");
   return {
     type: "cameraopen",
-    payload: camerastatus,
+    payload: status,
   };
 };
 
-const addUser = (userId,userImg) => {
+export const videoOpen = (status) => {
+  alert("Video");
+  return {
+    type: "videoopen",
+    payload: status,
+  };
+};
+
+export const addUser = (userId, userName, userImg) => {
   return {
     type: "adduser",
-     userId:userId,
-     userImg:userImg
+    userId: userId,
+    userImg: userImg,
+    userName: userName,
   };
 };
 
-const addUserData=(userId,userImg)=>{
+export const addUserData = (userId, userImg) => {
   return {
     type: "adduserdata",
     userId: userId,
     userImg: userImg,
   };
-}
+};
 
-const deleteUser=(userId)=>{
+export const deleteUser = (userId) => {
   return {
-    type:"deleteuser",
-    userId:userId  }
-}
+    type: "deleteuser",
+    userId: userId,
+  };
+};
+
+export const setStepStatus = (status) => {
+  return {
+    type: "stepstatus",
+    payload: status,
+  };
+};
+
+export const socket = () => {
+  return {
+    type: "socket",
+    oldsocket: io(`http://${document.location.hostname}:8000/`, {
+      transports: ["websocket", "polling", "flashsocket"],
+    }),
+  };
+};
+
+export const ownUserData = (imgdata) => {
+  return {
+    type: "ownuserdata",
+    imgdata: imgdata,
+  };
+};

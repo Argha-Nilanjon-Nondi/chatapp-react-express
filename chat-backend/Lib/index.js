@@ -39,7 +39,7 @@ class Helper {
     if (roomId in this.users) {
       const singleUser = {
         userId: userId,
-        userName: username
+        username: username
       };
       this.users[roomId].member.push(singleUser);
       this.userWithRoom[userId]=roomId
