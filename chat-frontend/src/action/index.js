@@ -1,3 +1,4 @@
+import { bindActionCreators } from "redux";
 import { io } from "socket.io-client";
 export const roomId = (roomid) => {
   return {
@@ -35,7 +36,6 @@ export const chatType = (chattype) => {
 };
 
 export const cameraOpen = (status) => {
-  alert("Camera");
   return {
     type: "cameraopen",
     payload: status,
@@ -43,14 +43,13 @@ export const cameraOpen = (status) => {
 };
 
 export const videoOpen = (status) => {
-  alert("Video");
   return {
     type: "videoopen",
     payload: status,
   };
 };
 
-export const addUser = (userId, userName, userImg) => {
+export const addUserData = (userId, userName, userImg) => {
   return {
     type: "adduser",
     userId: userId,
@@ -59,13 +58,6 @@ export const addUser = (userId, userName, userImg) => {
   };
 };
 
-export const addUserData = (userId, userImg) => {
-  return {
-    type: "adduserdata",
-    userId: userId,
-    userImg: userImg,
-  };
-};
 
 export const deleteUser = (userId) => {
   return {

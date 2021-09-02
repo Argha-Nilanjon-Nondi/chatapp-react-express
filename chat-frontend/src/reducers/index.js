@@ -58,32 +58,24 @@ const videoopen = (videoOpenStatus = "notCollectData", action) => {
 
 let userDataList = {};
 
-const users = (datastate = userDataList, action) => {
+const users = (datastate = userDataList, action) => { 
   if (action.type === "adduser") {
-    datastate[action.userId] = {
+    let datastateDup={};
+    datastateDup[action.userId] = {
       username: action.userName,
       imgdata: action.userImg,
     };
+    return {...datastate,...datastateDup}
   }
-  if (action.type === "adduserdata") {
-    datastate[action.userId] = {
-      username: action.username,
-      imgdata: action.userImg,
-    };
-  } 
+  if (action.type === "deleteuser") {
+    let datastateDup = JSON.parse(JSON.stringify(datastate));
+    delete datastateDup[action.userId];
+    return datastateDup;
+  }
     return datastate;
   
 };
 
-const deleteUser = (datastate = userDataList, action) => {
-  if (action.type === "deleteuser") {
-    if (action.userId in datastate) {
-      delete datastate[action.userId];
-      return action.userId;
-    }
-  }
-  return "Not deleted";
-};
 
 const stepstatus = (status = "form", action) => {
   if (action.type === "stepstatus") {
@@ -114,7 +106,6 @@ const ownuserdata = (state = { imgdata: "/favicon.ico" }, action) => {
 const rootReducers = combineReducers({
   socket,
   stepstatus,
-  deleteUser,
   room,
   roompassword,
   userid,
