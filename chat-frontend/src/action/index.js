@@ -75,10 +75,7 @@ export const setStepStatus = (status) => {
 
 export const socket = () => {
   return {
-    type: "socket",
-    oldsocket: io(`http://${document.location.hostname}:8000/`, {
-      transports: ["websocket", "polling", "flashsocket"],
-    }),
+    type: "socket"
   };
 };
 
@@ -88,3 +85,9 @@ export const ownUserData = (imgdata) => {
     imgdata: imgdata,
   };
 };
+
+export const endMeeding=()=>{
+  return {
+    type:"end"
+  }
+}

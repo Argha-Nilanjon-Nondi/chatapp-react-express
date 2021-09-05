@@ -1,6 +1,23 @@
 import React, { Component } from "react";
-
-export default class NavBar extends Component {
+import { connect } from "react-redux";
+import { endMeeding, roomPassword } from "../action/index";
+class NavBar extends Component {
+  handleField = (event) => {
+    this.props.roomPassword(event.target.value);
+  };
+  endMeeting = () => {
+    this.props.socket.emit("end-meeting", {
+      roomPassword:this.props.roompassword
+    });
+    this.props.endMeeding();
+  };
+  leaveMeeting = () => {
+    this.props.endMeeding();
+    this.props.socket.emit("leave-meeting", {
+      roomPassword: this.props.roompassword,
+    });
+    this.props.endMeeding();
+  };
   render() {
     return (
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -28,8 +45,60 @@ export default class NavBar extends Component {
               </li>
             </ul>
           </div>
+          {this.props.stepstatus !== "form" ? (
+            <div
+              class="collapse navbar-collapse row justify-content-end"
+              id="navbarSupportedContent"
+            >
+              {this.props.chattype == "me-chat-room" ? (
+                <div className="row justify-content-end col-9">
+                  {this.props.roompassword == "" ? (
+                    <input
+                      class="col mx-1 px-1 py-1 rounded"
+                      type="search"
+                      placeholder="Room Password"
+                      onChange={this.handleField}
+                    />
+                  ) : (
+                    ""
+                  )}
+                  <button class="btn btn-danger col-4 mx-1" type="button" onClick={this.endMeeting}>
+                    End Meeting
+                  </button>
+                </div>
+              ) : (
+                ""
+              )}
+              {this.props.chattype == "host-chat-room" ? (
+                <button class="btn btn-danger col-3 mx-1" type="button" onClick={this.leaveMeeting}>
+                  Leave Meeting
+                </button>
+              ) : (
+                ""
+              )}
+            </div>
+          ) : (
+            ""
+          )}
         </div>
       </nav>
     );
   }
 }
+
+const mapStateToProps = (props) => {
+  return {
+    roompassword: props.roompassword,
+    chattype: props.chattype,
+    stepstatus: props.stepstatus,
+    socket:props.socket
+  };
+};
+const mapDispatchToProps = (dispatch) => {
+  return {
+    endMeeding: () => dispatch(endMeeding()),
+    roomPassword: (value) => dispatch(roomPassword(value)),
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(NavBar);

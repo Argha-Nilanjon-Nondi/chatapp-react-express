@@ -7,6 +7,7 @@ import {
   deleteUser,
   videoOpen,
   setStepStatus,
+  endMeeding
 } from "../action/index";
 import Webcam from "react-webcam";
 import MemberCard from "./MemberCard";
@@ -69,6 +70,11 @@ class Chat extends Component {
       if (code === "2002") {
         this.props.addUserData(data.userId, data.username, "./favicon.ico");
       }
+
+      //if meeting end
+      if(code==="2006"){
+        this.props.endMeeding();
+      }
     });
   };
 
@@ -115,7 +121,6 @@ class Chat extends Component {
           ""
         )}
         <div className="mt-2 row justify-content-center">
-          <button>Hi</button>
           <div className="col-5 col-lg-4 border border-secondary rounded-3 py-1 px-1 mx-1 my-1">
             <h1 className="fs-4">{this.props.username}</h1>
             <div className="my-1 chat-image-frame">
@@ -174,6 +179,7 @@ const mapDispatchToProps = (dispatch) => {
     videoOpen: (value) => dispatch(videoOpen(value)),
     cameraOpen: (value) => dispatch(cameraOpen(value)),
     setStepStatus: (value) => dispatch(setStepStatus(value)),
+    endMeeding: () => dispatch(endMeeding()),
   };
 };
 
