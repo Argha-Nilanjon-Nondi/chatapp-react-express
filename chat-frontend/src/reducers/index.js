@@ -42,7 +42,7 @@ const chattype = (state = "", action) => {
 };
 
 const cameraopen = (cameraOpenStatus = false, action) => {
-  if (action.type == "cameraopen") {
+  if (action.type === "cameraopen") {
     cameraOpenStatus = action.payload;
     return cameraOpenStatus;
   }
@@ -53,16 +53,25 @@ const cameraopen = (cameraOpenStatus = false, action) => {
 };
 
 const videoopen = (videoOpenStatus = "notCollectData", action) => {
-  switch (action.type) {
-    case "videoopen":
+  if(action.type==="videoopen") {
       return action.payload;
-      break;
-    case "end":
-      return "collectData";
-      break;
-    default:
+  }
+  if(action.type==="end"){
+      return "notCollectData";
+  }
+    else{
       return videoOpenStatus;
-      break;
+  }
+};
+
+const voiceopen = (voiceOpenStatus = "notCollectData", action) => {
+  if (action.type === "voiceopen") {
+    return action.payload;
+  }
+  if (action.type === "end") {
+    return "notCollectData";
+  } else {
+    return voiceOpenStatus;
   }
 };
 
@@ -73,7 +82,7 @@ const users = (datastate = userDataList, action) => {
     let datastateDup = {};
     datastateDup[action.userId] = {
       username: action.userName,
-      imgdata: action.userImg,
+      videodata:action.userVideo
     };
     return { ...datastate, ...datastateDup };
   }
@@ -132,6 +141,7 @@ const rootReducers = combineReducers({
   chattype,
   cameraopen,
   videoopen,
+  voiceopen,
   users,
   ownuserdata,
 });

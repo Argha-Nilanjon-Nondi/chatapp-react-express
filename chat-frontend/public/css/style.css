@@ -1,19 +1,19 @@
-.custom-block-center {
+.custom-container{
+  width:90% !important;
   margin: 0 auto !important;
 }
 
-.custom-user-name{
-  margin-bottom: 0rem !important;
+.custom-video-box{
+  height: 16rem !important;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px !important;
 }
 
-.chat-box-responsive {
-  height: 20rem;
+.custom-video-player{
+  width: 100% !important;
+  height: 100% !important;
 }
 
-.chat-image-frame{
-}
-
-.chat-image{
-  height:100%;
-  width: 100%;
+.custom-btn{
+  width: 1rem;
+  height: 1rem;
 }

@@ -50,9 +50,9 @@ class NavBar extends Component {
               class="collapse navbar-collapse row justify-content-end"
               id="navbarSupportedContent"
             >
-              {this.props.chattype == "me-chat-room" ? (
+              {this.props.chattype === "me-chat-room" ? (
                 <div className="row justify-content-end col-9">
-                  {this.props.roompassword == "" ? (
+                  {this.props.roompassword === "" ? (
                     <input
                       class="col mx-1 px-1 py-1 rounded"
                       type="search"
@@ -69,7 +69,7 @@ class NavBar extends Component {
               ) : (
                 ""
               )}
-              {this.props.chattype == "host-chat-room" ? (
+              {this.props.chattype === "host-chat-room" ? (
                 <button class="btn btn-danger col-3 mx-1" type="button" onClick={this.leaveMeeting}>
                   Leave Meeting
                 </button>
