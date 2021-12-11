@@ -9,11 +9,12 @@ export default class App extends Component {
     super(props);
 
     this.state = {
-      call:null,
+      call: null,
       peer: null,
       stream: null,
+      call_btn_disabled: true,
       is_calling_one: false,
-      is_calling_two:false,
+      is_calling_two: false,
       recepient: "",
       my_name: "",
       other_name: "",
@@ -26,6 +27,7 @@ export default class App extends Component {
   }
 
   connect = () => {
+    // sending auser name to the server
     this.setState({
       alertContent: (
         <Alert
@@ -36,68 +38,23 @@ export default class App extends Component {
       ),
       my_form_disable: true,
     });
+
+    // initating a peer
     const peer = new Peer(this.state.my_name, {
       path: "/chat",
       host: "/",
       port: 8000,
     });
     this.setState({ peer: peer });
+
+    // sending the username to the server
     socket.emit("username_submit", { username: this.state.my_name });
-    peer.on("call", (call)=>{
-      this.setState({ call: call,is_calling_one:true});
+
+    // waiing for any call
+    peer.on("call", (call) => {
+      this.setState({ call: call, is_calling_one: true,other_form_disable:true });
     });
   };
-
-  // callUser=()=>{
-
-  //   peer.on("signal", (data) => {
-  //     socket.emit("call_user", {
-  //       from:this.state.my_name,
-  //       to:this.state.other_name,
-  //       signal: data,
-  //     });
-  //   });
-
-  //   peer.on("stream", (currentStream) => {
-  //     this.otherdata.current.srcObject = currentStream;
-  //   });
-
-  //   socket.on("call_user", (data) => {
-  //     let code=data.code;
-  //     if(code==="3001"){
-  //       this.setState({
-  //         alertContent: (
-  //           <Alert
-  //             type="danger"
-  //             symbol="Username error"
-  //             text="Username is not exist , choose another ."
-  //           />
-  //         ),
-  //       });
-  //     }
-  //     if(code==="2001"){
-  //       let signal=data.signal;
-  //       peer.signal(signal);
-  //     }
-
-  //   });
-
-  // }
-
-  //   answerCall = () => {
-
-  //   const peer = new Peer({ initiator: false, trickle: false, stream:this.state.stream });
-
-  //   peer.on('signal', (data) => {
-  //     socket.emit('answer_call', { signal: data, to:this.state.recepient });
-  //   });
-
-  //   peer.on('stream', (currentStream) => {
-  //     this.otherdata.current.srcObject = currentStream;
-  //   });
-
-  //   peer.signal(this.state.other_stream);
-  // };
 
   handleField = (event) => {
     this.setState({
@@ -106,28 +63,61 @@ export default class App extends Component {
   };
 
   call_user = () => {
+    // sendig data to the server so that the server could send the notofication about call to the peer
     socket.emit("call_user", {
-      my_username:this.state.my_name,
+      my_username: this.state.my_name,
       other_username: this.state.other_name,
     });
-     this.setState({
-       alertContent: (
-         <Alert
-           type="warning"
-           symbol="Waiting"
-           text="seaching for the username ."
-         />
-       ),
-       other_form_disable: true,
-     });
-   
+    this.setState({
+      alertContent: (
+        <Alert
+          type="warning"
+          symbol="Waiting"
+          text="seaching for the username ."
+        />
+      ),
+      other_form_disable: true,
+    });
   };
 
   answer_call = () => {
-    this.setState({is_calling_one:false,is_calling_two:false})
+    this.setState({
+      is_calling_one: false,
+      is_calling_two: false,
+      call_btn_disabled: false,
+      other_form_disable: true,
+    });
+    // send message to the caller that the receiver accepted the call
+    socket.emit("call_accept", {
+      other_username: this.state.other_name,
+    });
+
+    // answer the call with media stream
     this.state.call.answer(this.state.stream);
+
+    // listenning for the streaming data of the caller
     this.state.call.on("stream", (stream) => {
       this.otherdata.current.srcObject = stream;
+    });
+
+    // if the caller cut the call
+    this.state.call.on("close", () => {
+      this.setState({
+        alertContent: <Alert type="danger" symbol="End" text="Call is ended" />,
+        other_form_disable: false,
+        call_btn_disabled: true,
+      });
+    });
+  };
+
+  cut_call = () => {
+    // closing the call
+    this.state.call.close();
+    this.setState({ other_form_disable: false, call_btn_disabled: true });
+
+    // sending message to caller that the call is ended
+    socket.emit("call_end", {
+      other_username: this.state.other_name,
     });
   };
 
@@ -142,6 +132,7 @@ export default class App extends Component {
         alert(err);
       });
 
+    // getting information about the username which user has submitted
     socket.on("username_submit", (data) => {
       let code = data.code;
       if (code === "3000") {
@@ -171,54 +162,90 @@ export default class App extends Component {
       }
     });
 
-     socket.on("call_user", (data) => {
-       let code = data.code;
-       console.log(data);
-       if (code === "2001") {
-         this.setState({
-           alertContent: (
-             <Alert type="success" symbol="Calling" text="Calling the user" />
-           ),
-         });
-         let other_username = data.other_username;
-         const call = this.state.peer.call(other_username, this.state.stream);
-         this.setState({ call: call });
+    socket.on("call_user", (data) => {
+      let code = data.code;
 
-         this.state.call.on("stream", (remoteStream) => {
-           this.otherdata.current.srcObject = remoteStream;
-         });
-       }
-       if(code==="2002"){
-         this.setState({
-           recepient:data.other_username,
-is_calling_two:true
-         })
-       }
-       if (code === "3001") {
-         this.setState({
-           alertContent: (
-             <Alert
-               type="danger"
-               symbol="Not found"
-               text="Username is not found"
-             />
-           ),
-           other_form_disable: false,
-         });
-       }
-     });
+      // getting verification about the other username
+      if (code === "2001") {
+        this.setState({
+          alertContent: (
+            <Alert type="success" symbol="Calling" text="Calling the user" />
+          ),
+        });
+        let other_username = data.other_username;
 
+        // call the peer
+        const call = this.state.peer.call(other_username, this.state.stream);
+        this.setState({ call: call });
+
+        this.state.call.on("stream", (remoteStream) => {
+          this.otherdata.current.srcObject = remoteStream;
+        });
+
+        // if the caller cut the call
+        this.state.call.on("close", () => {
+          this.setState({
+            alertContent: (
+              <Alert type="danger" symbol="End" text="Call is ended" />
+            ),
+            other_form_disable: false,
+            call_btn_disabled: true,
+          });
+        });
+      }
+
+      // if anyone calling me
+      if (code === "2002") {
+        this.setState({
+          other_name: data.other_username,
+          is_calling_two: true,
+          other_form_disable:true
+        });
+      }
+
+      // if the other username is not founded the server
+      if (code === "3001") {
+        this.setState({
+          alertContent: (
+            <Alert
+              type="danger"
+              symbol="Not found"
+              text="Username is not found"
+            />
+          ),
+          other_form_disable: false,
+        });
+      }
+    });
+
+    // if our peer received our call
+    socket.on("call_accept", () => {
+      this.setState({
+        call_btn_disabled: false,
+        other_form_disable: true,
+      });
+    });
+
+    //if my peer ended mycall
+    socket.on("call_end", () => {
+      this.setState({
+        alertContent: <Alert type="danger" symbol="End" text="Call is ended" />,
+        other_form_disable: false,
+        call_btn_disabled: true,
+      });
+    });
   };
   render() {
     return (
       <Fragment>
         {this.state.alertContent}
         {/*pick up call or not*/}
-        {this.state.is_calling_one === true && this.state.is_calling_two===true ? (
+        {this.state.is_calling_one === true &&
+        this.state.is_calling_two === true ? (
           <div className="mt-4 custom-container rounded row navbar-dark bg-dark">
             <div className="col-lg-8 col-11">
               <p className="fs-2 text-light">
-                <strong className="fs-2">{this.state.recepient}</strong> is
+                <strong className="fs-2">{this.state.other_name}</strong> is
                 calling you .
               </p>
             </div>
@@ -319,7 +346,11 @@ is_calling_two:true
           <button className="col-2 btn btn-primary fs-2 p-2">
             <i class="fas fa-volume-up"></i>
           </button>
-          <button className="col-2 btn btn-primary fs-2 p-2" onClick={()=>this.state.call.close()}>
+          <button
+            className="col-2 btn btn-primary fs-2 p-2"
+            onClick={this.cut_call}
+            disabled={this.state.call_btn_disabled}
+          >
             <i class="fas fa-phone-slash"></i>
           </button>
         </div>

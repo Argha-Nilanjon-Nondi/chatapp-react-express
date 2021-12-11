@@ -27,7 +27,6 @@ io.on("connection", (socket) => {
       userList[data.username] = socket.id;
       socket.emit("username_submit", { code: "2000" });
     }
-    console.log(userList)
   });
 
   socket.on("call_user", (data) => {
@@ -43,8 +42,17 @@ io.on("connection", (socket) => {
 		
 	});
 
-  socket.on("disconnect",(data)=>{
+  socket.on("call_accept",(data)=>{
+    console.log(data)
+    io.to(userList[data.other_username]).emit("call_accept",{})
+  })
 
+ socket.on("call_end", (data) => {
+   io.to(userList[data.other_username]).emit("call_end", {});
+ });
+  socket.on("disconnect",(data)=>{
+const key = Object.keys(userList).find((key) => userList[key] === socket.id);
+delete userList[key]
   })
 });
 
