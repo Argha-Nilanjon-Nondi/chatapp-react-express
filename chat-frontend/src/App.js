@@ -95,10 +95,6 @@ export default class App extends Component {
 
   call_user = () => {
     // sendig data to the server so that the server could send the notofication about call to the peer
-    socket.emit("call_user", {
-      my_username: this.state.my_name,
-      other_username: this.state.other_name,
-    });
     this.setState({
       alertContent: (
         <Alert
@@ -109,6 +105,11 @@ export default class App extends Component {
       ),
       other_form_disable: true,
     });
+
+    socket.emit("call_user", {
+      my_username: this.state.my_name,
+      other_username: this.state.other_name,
+    });
   };
 
   answer_call = () => {
@@ -117,6 +118,9 @@ export default class App extends Component {
       is_calling_two: false,
       call_btn_disabled: false,
       other_form_disable: true,
+      alertContent: (
+        <Alert type="success" symbol="Call" text="Accepted the call" />
+      ),
     });
     // send message to the caller that the receiver accepted the call
     socket.emit("call_accept", {
@@ -160,6 +164,9 @@ export default class App extends Component {
       call_btn_disabled: true,
       is_calling_one: false,
       is_calling_two: false,
+      alertContent: (
+        <Alert type="danger" symbol="Call" text="Call is ended" />
+      ),
     });
 
     // sending message to caller that the call is ended
@@ -267,6 +274,7 @@ export default class App extends Component {
           other_name: data.other_username,
           is_calling_two: true,
           other_form_disable: true,
+          alertContent:<></>
         });
       }
 
@@ -291,7 +299,7 @@ export default class App extends Component {
         call_btn_disabled: false,
         other_form_disable: true,
       });
-      clearInterval(this.state.call_cut_interval_id)
+      clearInterval(this.state.call_cut_interval_id);
     });
 
     //if my peer ended mycall
