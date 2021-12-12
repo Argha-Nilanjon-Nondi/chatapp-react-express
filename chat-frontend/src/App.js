@@ -9,6 +9,9 @@ export default class App extends Component {
     super(props);
 
     this.state = {
+      call_cut_interval_id:"",
+      audio_status: true,
+      video_status: true,
       call: null,
       peer: null,
       stream: null,
@@ -52,7 +55,11 @@ export default class App extends Component {
 
     // waiing for any call
     peer.on("call", (call) => {
-      this.setState({ call: call, is_calling_one: true,other_form_disable:true });
+      this.setState({
+        call: call,
+        is_calling_one: true,
+        other_form_disable: true,
+      });
     });
   };
 
@@ -60,6 +67,30 @@ export default class App extends Component {
     this.setState({
       [event.target.name]: event.target.value,
     });
+  };
+
+  // on or off my video
+  change_video = () => {
+    if (this.state.video_status === true) {
+      this.setState({ video_status: false });
+      this.state.stream.getVideoTracks()[0].enabled = false;
+    }
+    if (this.state.video_status === false) {
+      this.setState({ video_status: true });
+      this.state.stream.getVideoTracks()[0].enabled = true;
+    }
+  };
+
+  // on or off my audio
+  change_audio = () => {
+    if (this.state.audio_status === true) {
+      this.setState({ audio_status: false });
+      this.state.stream.getAudioTracks()[0].enabled = false;
+    }
+    if (this.state.audio_status === false) {
+      this.setState({ audio_status: true });
+      this.state.stream.getAudioTracks()[0].enabled = true;
+    }
   };
 
   call_user = () => {
@@ -113,10 +144,26 @@ export default class App extends Component {
   cut_call = () => {
     // closing the call
     this.state.call.close();
-    this.setState({ other_form_disable: false, call_btn_disabled: true });
+    let emit_event;
+    if (
+      this.state.is_calling_two === true &&
+      this.state.is_calling_one === true
+    ) {
+      emit_event = "call_reject";
+    } else {
+      clearInterval(this.state.call_cut_interval_id)
+      emit_event = "call_end";
+    }
+
+    this.setState({
+      other_form_disable: false,
+      call_btn_disabled: true,
+      is_calling_one: false,
+      is_calling_two: false,
+    });
 
     // sending message to caller that the call is ended
-    socket.emit("call_end", {
+    socket.emit(emit_event, {
       other_username: this.state.other_name,
     });
   };
@@ -126,7 +173,7 @@ export default class App extends Component {
       .getUserMedia({ video: true, audio: true })
       .then((stream) => {
         this.setState({ stream: stream });
-        this.owndata.current.srcObject = stream;
+        this.owndata.current.srcObject = this.state.stream;
       })
       .catch((err) => {
         alert(err);
@@ -171,12 +218,32 @@ export default class App extends Component {
           alertContent: (
             <Alert type="success" symbol="Calling" text="Calling the user" />
           ),
+          call_btn_disabled:false
         });
         let other_username = data.other_username;
 
         // call the peer
         const call = this.state.peer.call(other_username, this.state.stream);
         this.setState({ call: call });
+
+        let call_cut_id=setInterval(()=>{
+          this.setState({
+            alertContent: (
+              <Alert
+                type="danger"
+                symbol="Not answering"
+                text={`${this.state.other_name} is not answering your call`}
+              />
+            ),
+            other_form_disable: false,
+            call_btn_disabled: true,
+          });
+           socket.emit("call_end", {
+             other_username: this.state.other_name,
+           });
+        },20000)
+
+        this.setState({call_cut_interval_id:call_cut_id})
 
         this.state.call.on("stream", (remoteStream) => {
           this.otherdata.current.srcObject = remoteStream;
@@ -199,7 +266,7 @@ export default class App extends Component {
         this.setState({
           other_name: data.other_username,
           is_calling_two: true,
-          other_form_disable:true
+          other_form_disable: true,
         });
       }
 
@@ -224,12 +291,30 @@ export default class App extends Component {
         call_btn_disabled: false,
         other_form_disable: true,
       });
+      clearInterval(this.state.call_cut_interval_id)
     });
 
     //if my peer ended mycall
     socket.on("call_end", () => {
       this.setState({
         alertContent: <Alert type="danger" symbol="End" text="Call is ended" />,
+        other_form_disable: false,
+        call_btn_disabled: true,
+        is_calling_one:false,
+        is_calling_two:false
+      });
+    });
+
+    // if my peer rejected my call
+    socket.on("call_reject", () => {
+      this.setState({
+        alertContent: (
+          <Alert
+            type="danger"
+            symbol="Reject"
+            text={`${this.state.other_name} is not answering your call`}
+          />
+        ),
         other_form_disable: false,
         call_btn_disabled: true,
       });
@@ -256,7 +341,10 @@ export default class App extends Component {
               >
                 <i class="fas fa-phone"></i>
               </button>
-              <button className="col-2 btn btn-danger fs-4 m-1">
+              <button
+                className="col-2 btn btn-danger fs-4 m-1"
+                onClick={this.cut_call}
+              >
                 <i class="fas fa-phone-slash"></i>
               </button>
             </div>
@@ -327,6 +415,7 @@ export default class App extends Component {
               className="custom-video-player"
               ref={this.owndata}
               autoPlay
+              muted
             ></video>
           </div>
           <div className="col-lg-4 col-10 rounded p-2 custom-video-box">
@@ -340,10 +429,20 @@ export default class App extends Component {
 
         {/*own stream controller*/}
         <div className="row justify-content-around mt-4 custom-container">
-          <button className="col-2 btn btn-primary fs-2 p-2">
+          <button
+            className={`col-2 btn ${
+              this.state.video_status === true ? "btn-primary" : "btn-danger"
+            } fs-2 p-2`}
+            onClick={this.change_video}
+          >
             <i class="fas fa-video"></i>
           </button>
-          <button className="col-2 btn btn-primary fs-2 p-2">
+          <button
+            className={`col-2 btn ${
+              this.state.audio_status === true ? "btn-primary" : "btn-danger"
+            } fs-2 p-2`}
+            onClick={this.change_audio}
+          >
             <i class="fas fa-volume-up"></i>
           </button>
           <button

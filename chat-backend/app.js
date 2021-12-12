@@ -50,6 +50,9 @@ io.on("connection", (socket) => {
  socket.on("call_end", (data) => {
    io.to(userList[data.other_username]).emit("call_end", {});
  });
+ socket.on("call_reject", (data) => {
+   io.to(userList[data.other_username]).emit("call_reject", {});
+ });
   socket.on("disconnect",(data)=>{
 const key = Object.keys(userList).find((key) => userList[key] === socket.id);
 delete userList[key]
