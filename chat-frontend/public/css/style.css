@@ -1,19 +1,29 @@
-.custom-container{
-  width:90% !important;
+.custom-container {
+  width: 90% !important;
   margin: 0 auto !important;
 }
 
-.custom-video-box{
+.custom-video-container {
+}
+
+.custom-video-box {
   height: 16rem !important;
   box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px !important;
 }
 
-.custom-video-player{
+.custom-video-player {
   width: 100% !important;
   height: 100% !important;
 }
 
-.custom-btn{
+.custom-btn {
   width: 1rem;
   height: 1rem;
+}
+
+@media screen and (max-width: 1100px) {
+  .custom-video-container {
+    flex-direction: column-reverse !important;
+    align-items: center !important;
+  }
 }

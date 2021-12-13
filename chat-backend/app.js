@@ -1,6 +1,5 @@
 const express = require("express");
-const cors = require("cors");
-
+const path=require("path")
 const app = express();
 const server=require("http").Server(app)
 const io = require("socket.io")(server,{
@@ -17,6 +16,12 @@ app.use(express());
 app.use("/chat", peerServer);
 
 const userList = {};
+
+app.use(express.static(path.join(__dirname, "build")));
+
+app.get("*", function (req, res) {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
+});
 
 io.on("connection", (socket) => {
   socket.on("username_submit", (data) => {

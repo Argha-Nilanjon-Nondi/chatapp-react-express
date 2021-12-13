@@ -9,7 +9,8 @@ export default class App extends Component {
     super(props);
 
     this.state = {
-      call_cut_interval_id:"",
+      call_timeout:9000,//(mili second)
+      call_cut_timeout_id:"",
       audio_status: true,
       video_status: true,
       call: null,
@@ -155,7 +156,7 @@ export default class App extends Component {
     ) {
       emit_event = "call_reject";
     } else {
-      clearInterval(this.state.call_cut_interval_id)
+      clearTimeout(this.state.call_cut_timeout_id)
       emit_event = "call_end";
     }
 
@@ -183,7 +184,13 @@ export default class App extends Component {
         this.owndata.current.srcObject = this.state.stream;
       })
       .catch((err) => {
-        alert(err);
+        this.setState({
+          alertContent: <Alert type="danger" symbol="Error" text={err} />,
+          my_form_disable:true,
+          other_form_disable:true,
+          audio_status:false,
+          video_status:false,
+        })
       });
 
     // getting information about the username which user has submitted
@@ -233,7 +240,8 @@ export default class App extends Component {
         const call = this.state.peer.call(other_username, this.state.stream);
         this.setState({ call: call });
 
-        let call_cut_id=setInterval(()=>{
+        let call_cut_id=setTimeout(()=>{
+          this.state.call.close()
           this.setState({
             alertContent: (
               <Alert
@@ -248,9 +256,9 @@ export default class App extends Component {
            socket.emit("call_end", {
              other_username: this.state.other_name,
            });
-        },20000)
+        },this.state.call_timeout)
 
-        this.setState({call_cut_interval_id:call_cut_id})
+        this.setState({call_cut_timeout_id:call_cut_id})
 
         this.state.call.on("stream", (remoteStream) => {
           this.otherdata.current.srcObject = remoteStream;
@@ -298,8 +306,11 @@ export default class App extends Component {
       this.setState({
         call_btn_disabled: false,
         other_form_disable: true,
+        alertContent: (
+          <Alert type="success" symbol="Call" text="Accepted the call" />
+        ),
       });
-      clearInterval(this.state.call_cut_interval_id);
+      clearTimeout(this.state.call_cut_timeout_id);
     });
 
     //if my peer ended mycall
@@ -326,6 +337,7 @@ export default class App extends Component {
         other_form_disable: false,
         call_btn_disabled: true,
       });
+      clearTimeout(this.state.call_cut_timeout_id)
     });
   };
   render() {
@@ -362,7 +374,7 @@ export default class App extends Component {
         )}
 
         {/*own and other user name form*/}
-        <div className="row justify-content-around mt-4 custom-container">
+        <div className="row justify-content-around mt-2 custom-container">
           <div className="col-lg-6 col-11">
             <div class="input-group mb-3">
               <span class="input-group-text" id="basic-addon1">
@@ -416,27 +428,8 @@ export default class App extends Component {
           </div>
         </div>
 
-        {/*own and other user web cam viewer*/}
-        <div className="row justify-content-around mt-4 custom-container">
-          <div className="col-lg-4 col-10 rounded p-2 custom-video-box">
-            <video
-              className="custom-video-player"
-              ref={this.owndata}
-              autoPlay
-              muted
-            ></video>
-          </div>
-          <div className="col-lg-4 col-10 rounded p-2 custom-video-box">
-            <video
-              className="custom-video-player"
-              ref={this.otherdata}
-              autoPlay
-            ></video>
-          </div>
-        </div>
-
         {/*own stream controller*/}
-        <div className="row justify-content-around mt-4 custom-container">
+        <div className="row justify-content-around mt-1 custom-container">
           <button
             className={`col-2 btn ${
               this.state.video_status === true ? "btn-primary" : "btn-danger"
@@ -460,6 +453,25 @@ export default class App extends Component {
           >
             <i class="fas fa-phone-slash"></i>
           </button>
+        </div>
+
+        {/*own and other user web cam viewer*/}
+        <div className="row justify-content-around custom-container mt-2 md-4 custom-video-container">
+          <div className="col-lg-4 col-10 rounded p-2 mt-1 custom-video-box">
+            <video
+              className="custom-video-player"
+              ref={this.owndata}
+              autoPlay
+              muted
+            ></video>
+          </div>
+          <div className="col-lg-4 col-10 rounded p-2 mt-1 custom-video-box">
+            <video
+              className="custom-video-player"
+              ref={this.otherdata}
+              autoPlay
+            ></video>
+          </div>
         </div>
       </Fragment>
     );

@@ -1,0 +1,2 @@
+@-webkit-keyframes invisible{0%{display:block!important}to{display:none!important}}@keyframes invisible{0%{display:block!important}to{display:none!important}}.custom-alert{-webkit-animation-name:"invisible";animation-name:"invisible";-webkit-animation-duration:3s;animation-duration:3s;-webkit-animation-iteration-count:1;animation-iteration-count:1}
+/*# sourceMappingURL=main.ab1477fc.chunk.css.map */
